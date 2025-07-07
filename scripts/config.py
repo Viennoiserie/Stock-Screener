@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 # === Miscellaneous Constants === #
 
-OUTPUT_DIR = Path("../output")
+OUTPUT_DIR = Path("./output")
 RESULTS_FILE = OUTPUT_DIR / "screener_results.txt"
 
 MAX_TICKERS = 50
