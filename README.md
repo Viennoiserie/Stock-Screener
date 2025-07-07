@@ -34,6 +34,12 @@ pip install ib_insync pandas pytz
 
 ## 🚀 Lancer l'application
 
+Lancez l'application Trader Workstation en mode administrateur en version démo (ou connectez vous si vous avez un compte).
+Fichier > Configuration Générale > API > Settings : - Cochez 'Enable ActiveX and Socket Clients
+                                                    - Décochez 'Read-Only API'
+
+Puis lancez :
+
 ```bash
 python main.py
 ```
