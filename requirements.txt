@@ -1,0 +1,6 @@
+tk
+pytz
+pandas
+requests
+ib_insync
+tkcalendar
