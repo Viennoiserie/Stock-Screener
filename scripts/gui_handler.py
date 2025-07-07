@@ -10,6 +10,7 @@ from conditions import CONDITION_DEFINITIONS as cond_defs
 class StockScreenerApp:
 
     def __init__(self, root):
+        
         self.root = root
         self.root.title("Nasdaq Stock Screener")
 
