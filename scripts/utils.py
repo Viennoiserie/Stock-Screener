@@ -1,20 +1,9 @@
-# utils.py
-
 import operator
 import pandas as pd
 
 from typing import Optional
 
 # === Evaluation function === #
-
-def safe_compare_bars(d, h1, h2, col, op):
-
-    b1, b2 = get_bar_at_hour(d, h1), get_bar_at_hour(d, h2)
-
-    if b1 is not None and b2 is not None:
-        return op(b1[col], b2[col]), not op(b1[col], b2[col])
-    
-    return False, False
 
 def safe_high_vs_open16(d, dy, open16, factor):
 
@@ -56,14 +45,33 @@ def safe_range_high_vs_yclose(d, dy, y_hour, mult):
     
     return False, False
 
-def safe_compare_day1_vs_today(d, dy, h_today, h_yesterday, col, op):
+def safe_compare_bars(d, h1, h2, col, op, cid=None):
 
-    b1 = get_bar_at_hour(d, h_today)
-    b2 = get_bar_at_hour(dy, h_yesterday)
+    b1, b2 = get_bar_at_hour(d, h1), get_bar_at_hour(d, h2)
 
     if b1 is not None and b2 is not None:
-        return op(b1[col], b2[col]), not op(b1[col], b2[col])
-    
+
+        primary = op(b1[col], b2[col])
+
+        def inverse_condition_operator(op):
+
+            symmetrical = {operator.le: operator.ge, operator.ge: operator.le}
+
+            logical = {operator.le: operator.gt,
+                       operator.lt: operator.ge,
+                       operator.ge: operator.lt,
+                       operator.gt: operator.le,
+                       operator.eq: operator.ne,
+                       operator.ne: operator.eq}
+
+            if cid in list(range(19, 35)) + list(range(51, 67)):
+                return symmetrical.get(op, op)
+            
+            return logical.get(op, lambda a, b: not op(a, b))
+
+        inverse = inverse_condition_operator(op)(b1[col], b2[col])
+        return primary, inverse
+
     return False, False
 
 def safe_compare_to_range(d, h, col, hour_range, op, agg_func="max"):
@@ -74,6 +82,35 @@ def safe_compare_to_range(d, h, col, hour_range, op, agg_func="max"):
     if b is not None and m is not None:
         return op(b[col], m), not op(b[col], m)
     
+    return False, False
+
+def safe_compare_day1_vs_today(d, dy, h_today, h_yesterday, col, op, cid=None):
+
+    b1 = get_bar_at_hour(d, h_today)
+    b2 = get_bar_at_hour(dy, h_yesterday)
+
+    if b1 is not None and b2 is not None:
+
+        primary = op(b1[col], b2[col])
+
+        def inverse_condition_operator(op):
+
+            symmetrical = {operator.le: operator.ge, operator.ge: operator.le}
+
+            logical = {operator.le: operator.gt,
+                       operator.lt: operator.ge,
+                       operator.ge: operator.lt,
+                       operator.gt: operator.le,
+                       operator.eq: operator.ne,
+                       operator.ne: operator.eq,}
+
+            if cid in [19, 51]:
+                return symmetrical.get(op, op)
+            
+            return logical.get(op, lambda a, b: not op(a, b))
+
+        inverse = inverse_condition_operator(op)(b1[col], b2[col])
+        return primary, inverse
     return False, False
 
 # === Text extraction functions === #
