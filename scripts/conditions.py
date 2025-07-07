@@ -1,10 +1,9 @@
-# conditions.py
-
 import operator
 import pandas as pd
 
 from config import logger
 from typing import List, Tuple, Optional
+
 from utils import (get_range_stat,
                    get_first_n_bars,
                    safe_compare_bars,
@@ -57,22 +56,20 @@ CONDITION_FUNCTIONS = {}
 
 # Conditions 1–2: Close >= Open on DAY-1 at 18h and 19h
 for cid, h in zip(range(1, 3), [18, 19]):
-
     CONDITION_FUNCTIONS[cid] = lambda d, dy, *_ , h=h: ((b := get_bar(dy, h)) is not None and b["Close"] >= b["Open"],
                                                         (b := get_bar(dy, h)) is not None and b["Close"] < b["Open"])
 
 # Conditions 3–18: Close >= Open from 4h to 19h
 for cid, h in zip(range(3, 19), range(4, 20)):
-
     CONDITION_FUNCTIONS[cid] = lambda d, *_ , h=h: ((b := get_bar(d, h)) is not None and b["Close"] >= b["Open"],
                                                     (b := get_bar(d, h)) is not None and b["Close"] < b["Open"])
 
 # Condition 19: Low 4h <= Low 19h DAY-1
-CONDITION_FUNCTIONS[19] = lambda d, dy, *_: safe_compare_day1_vs_today(d, dy, 4, 19, "Low", operator.le)
+CONDITION_FUNCTIONS[19] = lambda d, dy, *_: safe_compare_day1_vs_today(d, dy, 4, 19, "Low", operator.le, 19)
 
 # Conditions 20–34: Low progression (Low h <= Low h-1)
 for cid, (h1, h2) in zip(range(20, 35), zip(range(5, 20), range(4, 19))):
-    CONDITION_FUNCTIONS[cid] = lambda d, *_ , h1=h1, h2=h2: safe_compare_bars(d, h1, h2, "Low", operator.le)
+    CONDITION_FUNCTIONS[cid] = lambda d, *_ , h1=h1, h2=h2, cid=cid: safe_compare_bars(d, h1, h2, "Low", operator.le, cid)
 
 # Conditions 35–46: High h >= max High 4–15
 for cid, h in zip(range(35, 47), range(4, 16)):
@@ -83,11 +80,11 @@ for cid, h in zip(range(47, 51), range(16, 20)):
     CONDITION_FUNCTIONS[cid] = lambda d, *_ , h=h: safe_compare_to_range(d, h, "High", range(4, 20), operator.ge)
 
 # Condition 51: High 4h >= High 19h DAY-1
-CONDITION_FUNCTIONS[51] = lambda d, dy, *_: safe_compare_day1_vs_today(d, dy, 4, 19, "High", operator.ge)
+CONDITION_FUNCTIONS[51] = lambda d, dy, *_: safe_compare_day1_vs_today(d, dy, 4, 19, "High", operator.ge, 51)
 
 # Conditions 52–66: High h >= High h-1
 for cid, (h1, h2) in zip(range(52, 67), zip(range(5, 20), range(4, 19))):
-    CONDITION_FUNCTIONS[cid] = lambda d, *_ , h1=h1, h2=h2: safe_compare_bars(d, h1, h2, "High", operator.ge)
+    CONDITION_FUNCTIONS[cid] = lambda d, *_ , h1=h1, h2=h2, cid=cid: safe_compare_bars(d, h1, h2, "High", operator.ge, cid)
 
 # Condition 67: High 10h > max High 4–9
 CONDITION_FUNCTIONS[67] = lambda d, *_: safe_compare_to_range(d, 10, "High", range(4, 10), operator.gt)
@@ -97,7 +94,6 @@ CONDITION_FUNCTIONS[68] = lambda d, *_: safe_compare_to_range(d, 10, "Low", rang
 
 # Conditions 69–76: Open/Close != High/Low for 4h and 5h
 for cid, h in zip(range(69, 77), [4]*4 + [5]*4):
-
     CONDITION_FUNCTIONS[cid] = lambda d, *_ , h=h, i=cid % 4: ((b := get_bar(d, h)) is not None and (b["Open"] != b["Low"] if i == 1 else
                                                                                                      b["Open"] != b["High"] if i == 2 else
                                                                                                      b["Close"] != b["Low"] if i == 3 else
@@ -105,7 +101,6 @@ for cid, h in zip(range(69, 77), [4]*4 + [5]*4):
 
 # Conditions 77–79: First 3 bars close >= open
 for i, cid in enumerate(range(77, 80)):
-
     CONDITION_FUNCTIONS[cid] = lambda d, *_ , i=i: ((bars := get_first_n_bars(d, 3)).shape[0] > i and bars.iloc[i]["Close"] >= bars.iloc[i]["Open"],
                                                                                                       bars.iloc[i]["Close"] < bars.iloc[i]["Open"] if bars.shape[0] > i else None)
 
@@ -184,15 +179,16 @@ def evaluate_conditions(conditions: dict, data: pd.DataFrame, open_16h_day_minus
 
     all_requested = selected_ids.union(inverse_ids)
 
+    # === Check() Helper function === #
+
     def check(cid: int, cond_primary: bool, cond_inverse: Optional[bool] = None):
 
-        primary_cond = conditions.get(str(cid))
-        inverse_cond = conditions.get(f"inv_{cid}")
+        primary_key = str(cid)
+        inverse_key = f"inv_{cid}"
 
         def to_bool(val):
 
             if isinstance(val, pd.Series):
-
                 if val.size == 1:
                     return bool(val.item())
                 
@@ -202,15 +198,18 @@ def evaluate_conditions(conditions: dict, data: pd.DataFrame, open_16h_day_minus
             return bool(val) if val is not None else False
 
         try:
-            if primary_cond and primary_cond.get():
-                results[cid] = to_bool(cond_primary)
+            if primary_key in conditions and conditions[primary_key].get():
+                results[primary_key] = to_bool(cond_primary)
 
-            elif inverse_cond and inverse_cond.get():
-                results[cid] = to_bool(cond_inverse if cond_inverse is not None else not cond_primary)
+            if inverse_key in conditions and conditions[inverse_key].get():
+                results[inverse_key] = to_bool(cond_inverse if cond_inverse is not None else not cond_primary)
 
         except Exception as e:
             logger.error(f"Error evaluating condition {cid}: {e}")
-            results[cid] = False
+            results[primary_key] = False
+            results[inverse_key] = False
+
+    # =============================== #
 
     for cid in sorted(all_requested):
 
@@ -231,10 +230,6 @@ def evaluate_conditions(conditions: dict, data: pd.DataFrame, open_16h_day_minus
             results[cid] = False
 
     if not results:
-        logger.warning("Aucune condition évaluée pour ce ticker — exclusion.")
+        logger.warning("No conditions evaluated — exclusion.")
         return False
-
-    if any(v is False for v in results.values()) or len(results) < len(all_requested):
-        return False
-
-    return all(results.values())
+    return all(results.get(k, False) for k, v in conditions.items() if v.get())
