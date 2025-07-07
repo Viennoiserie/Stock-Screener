@@ -1,5 +1,3 @@
-# appp.py
-
 from datetime import datetime
 from tkinter import messagebox
 from config import logger, MAX_TICKERS
