@@ -1,5 +1,3 @@
-# ib_connect.py
-
 from ib_insync import IB
 from config import IB_GATEWAY_HOST, IB_GATEWAY_PORT, IB_CLIENT_ID, logger
 
