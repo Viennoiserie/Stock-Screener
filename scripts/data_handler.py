@@ -1,5 +1,3 @@
-# data_hndler.py
-
 import pytz
 import datetime
 import pandas as pd
