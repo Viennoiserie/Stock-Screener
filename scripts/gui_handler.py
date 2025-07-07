@@ -1,5 +1,3 @@
-# gui_handler.py
-
 import tkinter as tk
 
 from config import logger
