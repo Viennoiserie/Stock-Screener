@@ -9,8 +9,9 @@ from conditions import CONDITION_DEFINITIONS as cond_defs
 
 class StockScreenerApp:
 
-    def __init__(self, root):
-        
+    def __init__(self, root, ib):
+
+        self.ib = ib
         self.root = root
         self.root.title("Nasdaq Stock Screener")
 
@@ -32,16 +33,40 @@ class StockScreenerApp:
         self.root.rowconfigure(0, weight=1)
 
         # region : Tickers 
+
         self.ticker_frame = ttk.LabelFrame(self.main_frame, text="Ticker Selection", padding=5)
         self.ticker_frame.grid(row=0, column=2, rowspan=2, sticky=tk.NSEW, padx=5, pady=5)
-        self.ticker_inner_frame = ttk.Frame(self.ticker_frame)
-        self.ticker_inner_frame.pack(fill=tk.BOTH, expand=True)
+
+        self.ticker_frame.rowconfigure(1, weight=1)
+        self.ticker_frame.columnconfigure(0, weight=1)
 
         ticker_btn_frame = ttk.Frame(self.ticker_frame)
-        ticker_btn_frame.pack(pady=5)
-
+        ticker_btn_frame.grid(row=0, column=0, sticky=tk.EW)
         ttk.Button(ticker_btn_frame, text="Select All", command=self.select_all_tickers).pack(side=tk.LEFT, padx=2)
         ttk.Button(ticker_btn_frame, text="Unselect All", command=self.unselect_all_tickers).pack(side=tk.LEFT, padx=2)
+
+        canvas_frame = ttk.Frame(self.ticker_frame)
+        canvas_frame.grid(row=1, column=0, sticky=tk.NSEW)
+
+        canvas_frame.rowconfigure(0, weight=1)
+        canvas_frame.columnconfigure(0, weight=1)
+
+        ticker_scroll_canvas = tk.Canvas(canvas_frame)
+        ticker_scroll_canvas.grid(row=0, column=0, sticky=tk.NSEW)
+
+        ticker_scrollbar = ttk.Scrollbar(canvas_frame, orient="vertical", command=ticker_scroll_canvas.yview)
+        ticker_scrollbar.grid(row=0, column=1, sticky=tk.NS)
+
+        self.ticker_inner_frame = ttk.Frame(ticker_scroll_canvas)
+        self.ticker_inner_frame.bind("<Configure>", lambda e: ticker_scroll_canvas.configure(scrollregion=ticker_scroll_canvas.bbox("all")))
+
+        ticker_scroll_canvas.create_window((0, 0), window=self.ticker_inner_frame, anchor="nw")
+        ticker_scroll_canvas.configure(yscrollcommand=ticker_scrollbar.set)
+
+        def _on_mousewheel(event):
+            ticker_scroll_canvas.xview_scroll(int(-1*(event.delta/120)), "units")
+
+        ticker_scroll_canvas.bind_all("<MouseWheel>", _on_mousewheel)
 
         # endregion
 
@@ -93,25 +118,30 @@ class StockScreenerApp:
         self.main_frame.rowconfigure(1, weight=1)
         self.main_frame.columnconfigure(0, weight=0)
         self.main_frame.columnconfigure(1, weight=1)
-        self.main_frame.columnconfigure(2, weight=1)
+        self.main_frame.columnconfigure(2, weight=0)
 
 # region : Helper Functions
 
     def reset(self):
-
+        
         self.date_entry.delete(0, tk.END)
         self.date_entry.insert(0, get_screening_date_now().strftime("%Y-%m-%d"))
-
-        self.ticker_vars = {}
-        self.conditions = {}
-
-        self.tickers = []
-        self.results = []
 
         self.tree.delete(*self.tree.get_children())
 
         for widget in self.ticker_inner_frame.winfo_children():
             widget.destroy()
+
+        # Remet toutes les cases à cocher des conditions à False
+        for var in self.conditions.values():
+            var.set(False)
+
+        # Remet toutes les cases à cocher des tickers à False
+        for var in self.ticker_vars.values():
+            var.set(False)
+
+        self.tickers = []
+        self.results = []
 
         logger.info("App reset.")
 
@@ -124,10 +154,6 @@ class StockScreenerApp:
             try:
                 with open(path, "r") as f:
                     tickers = [x.strip().split(":")[-1] for x in f.read().strip().split(",") if x.strip()]
-
-                if len(tickers) > 50:
-                    messagebox.showerror("Error", "Maximum 50 tickers allowed")
-                    return
                 
                 self.tickers = tickers
                 logger.info(f"Loaded tickers: {tickers}")
