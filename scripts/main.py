@@ -1,5 +1,6 @@
 import tkinter as tk
 
+from ib_connect import get_ib   
 from gui_handler import StockScreenerApp
 from config import APP_TITLE, ICON_PATH, DEFAULT_FULLSCREEN, DEFAULT_ZOOMED
 
@@ -20,8 +21,14 @@ def launch_app():
     except Exception as e:
         print(f"Could not load icon: {e}")
 
-    app = StockScreenerApp(root)
-    root.mainloop()
+    ib = get_ib()
 
+    if ib is None:
+        print("Could not connect to IB Gateway, exiting.")
+        return
+
+    app = StockScreenerApp(root, ib) 
+    root.mainloop()
+    
 if __name__ == "__main__":
     launch_app()
