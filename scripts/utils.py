@@ -3,7 +3,7 @@ import pandas as pd
 
 from typing import Optional
 
-# === Evaluation function === #
+# region : Evaluation Functions
 
 def safe_high_vs_open16(d, dy, open16, factor):
 
@@ -113,7 +113,9 @@ def safe_compare_day1_vs_today(d, dy, h_today, h_yesterday, col, op, cid=None):
         return primary, inverse
     return False, False
 
-# === Text extraction functions === #
+# endregion
+
+# region : Extraction Functions
 
 def extract_comparator(condition_text: str) -> str:
 
@@ -143,7 +145,9 @@ def inverse_comparator(symbol: str) -> str:
     
     return symbol.translate(str.maketrans(inversions)) if any(k in symbol for k in inversions) else f"Inverse({symbol})"
 
-# === Stock values analysis functions === #
+# endregion
+
+# region : Stock Analysis Functions
 
 def get_range_stat(df, hour_range: range, col: str, mode: str = "max"):
 
@@ -193,3 +197,5 @@ def get_first_n_bars(df, n: int):
     """
 
     return df.sort_index().head(n)
+
+# endregion
