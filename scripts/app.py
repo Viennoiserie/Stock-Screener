@@ -50,7 +50,6 @@ def run_screener(app):
             logger.debug(f"[SKIP] No data for {ticker}")
             continue
 
-        # Pre-fetch all required data
         data_today = get_data_for_date(df, screening_date)
         
         if data_today.empty:
