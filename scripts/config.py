@@ -2,7 +2,6 @@ import pytz
 import logging
 
 from pathlib import Path
-from ib_insync import IB
 
 # === Logging Configuration === #
 
@@ -26,7 +25,7 @@ APP_TITLE = "Nasdaq Stock Screener"
 DEFAULT_FULLSCREEN = True
 DEFAULT_ZOOMED = True
 
-# === Interactive Brokers Configuration === #
+# === Timezone / Brokers === #
 
 EASTERN_TZ = pytz.timezone("US/Eastern")
 IB_GATEWAY_HOST = '127.0.0.1'
