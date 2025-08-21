@@ -32,10 +32,17 @@ class StockScreenerApp:
         self.root.columnconfigure(0, weight=1)
         self.root.rowconfigure(0, weight=1)
 
-        # region : Tickers 
+        self.main_frame.columnconfigure(0, weight=0)  
+        self.main_frame.columnconfigure(1, weight=3)  
+        self.main_frame.columnconfigure(2, weight=1)  
+        self.main_frame.rowconfigure(0, weight=0)
+        self.main_frame.rowconfigure(1, weight=1)
 
-        self.ticker_frame = ttk.LabelFrame(self.main_frame, text="Ticker Selection", padding=5)
-        self.ticker_frame.grid(row=0, column=2, rowspan=2, sticky=tk.NSEW, padx=5, pady=5)
+        # region : Tickers
+
+        self.ticker_frame = ttk.LabelFrame(self.main_frame, text="Ticker Selection", padding=5, width=260)
+        self.ticker_frame.grid(row=0, column=2, rowspan=2, sticky=tk.NS, padx=5, pady=5)
+        self.ticker_frame.grid_propagate(False)
 
         self.ticker_frame.rowconfigure(1, weight=1)
         self.ticker_frame.columnconfigure(0, weight=1)
@@ -47,7 +54,6 @@ class StockScreenerApp:
 
         canvas_frame = ttk.Frame(self.ticker_frame)
         canvas_frame.grid(row=1, column=0, sticky=tk.NSEW)
-
         canvas_frame.rowconfigure(0, weight=1)
         canvas_frame.columnconfigure(0, weight=1)
 
@@ -57,20 +63,21 @@ class StockScreenerApp:
         ticker_scrollbar = ttk.Scrollbar(canvas_frame, orient="vertical", command=ticker_scroll_canvas.yview)
         ticker_scrollbar.grid(row=0, column=1, sticky=tk.NS)
 
+        ticker_scroll_canvas.configure(yscrollcommand=ticker_scrollbar.set)
+
         self.ticker_inner_frame = ttk.Frame(ticker_scroll_canvas)
         self.ticker_inner_frame.bind("<Configure>", lambda e: ticker_scroll_canvas.configure(scrollregion=ticker_scroll_canvas.bbox("all")))
 
         ticker_scroll_canvas.create_window((0, 0), window=self.ticker_inner_frame, anchor="nw")
-        ticker_scroll_canvas.configure(yscrollcommand=ticker_scrollbar.set)
 
         def _on_mousewheel(event):
-            ticker_scroll_canvas.xview_scroll(int(-1*(event.delta/120)), "units")
+            ticker_scroll_canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
 
         ticker_scroll_canvas.bind_all("<MouseWheel>", _on_mousewheel)
 
         # endregion
 
-        # region : Results 
+        # region : Results
 
         results_frame = ttk.LabelFrame(self.main_frame, text="Results", padding=5)
         results_frame.grid(row=1, column=0, sticky=tk.NSEW, padx=5, pady=5)
@@ -92,17 +99,17 @@ class StockScreenerApp:
         self.date_entry.grid(row=0, column=1, sticky=tk.W, padx=5)
         self.date_entry.insert(0, get_screening_date_now().strftime("%Y-%m-%d"))
 
-        ttk.Button(control_frame, text="Upload Ticker List", command=self.upload_file).grid(row=1, column=0, columnspan=2, pady=5)
+        ttk.Button(control_frame, text="Upload Ticker List", command=self.upload_file).grid(row=2, column=0, columnspan=2, sticky=tk.W, pady=(5, 0))
 
         btn_frame = ttk.Frame(control_frame)
-        btn_frame.grid(row=2, column=0, columnspan=2, pady=5)
+        btn_frame.grid(row=3, column=0, columnspan=2, pady=10)
 
         ttk.Button(btn_frame, text="Run Screener", command=lambda: run_screener(self)).pack(side=tk.LEFT, padx=5)
         ttk.Button(btn_frame, text="Reset", command=self.reset).pack(side=tk.LEFT, padx=5)
 
         # endregion
 
-        # region : Indicators 
+        # region : Indicators
 
         indicators_frame = ttk.LabelFrame(self.main_frame, text="Indicators", padding=5)
         indicators_frame.grid(row=0, column=1, rowspan=2, sticky=tk.NSEW, padx=5, pady=5)
@@ -114,29 +121,20 @@ class StockScreenerApp:
 
         # endregion
 
-        self.main_frame.rowconfigure(0, weight=0)
-        self.main_frame.rowconfigure(1, weight=1)
-        self.main_frame.columnconfigure(0, weight=0)
-        self.main_frame.columnconfigure(1, weight=1)
-        self.main_frame.columnconfigure(2, weight=0)
-
-# region : Helper Functions
+    # region : Helper Functions
 
     def reset(self):
-        
+
         self.date_entry.delete(0, tk.END)
         self.date_entry.insert(0, get_screening_date_now().strftime("%Y-%m-%d"))
-
         self.tree.delete(*self.tree.get_children())
 
         for widget in self.ticker_inner_frame.winfo_children():
             widget.destroy()
 
-        # Remet toutes les cases à cocher des conditions à False
         for var in self.conditions.values():
             var.set(False)
 
-        # Remet toutes les cases à cocher des tickers à False
         for var in self.ticker_vars.values():
             var.set(False)
 
@@ -154,11 +152,11 @@ class StockScreenerApp:
             try:
                 with open(path, "r") as f:
                     tickers = [x.strip().split(":")[-1] for x in f.read().strip().split(",") if x.strip()]
-                
+
                 self.tickers = tickers
                 logger.info(f"Loaded tickers: {tickers}")
-                messagebox.showinfo("Success", f"{len(tickers)} tickers loaded.")
 
+                messagebox.showinfo("Success", f"{len(tickers)} tickers loaded.")
                 self.populate_ticker_selection()
 
             except Exception as e:
@@ -243,14 +241,17 @@ class StockScreenerApp:
         create_grid_conditions(tab2, 126, len(cond_defs))
 
     def select_all_tickers(self):
+
         for var in self.ticker_vars.values():
             var.set(True)
 
     def unselect_all_tickers(self):
+
         for var in self.ticker_vars.values():
             var.set(False)
 
     def deselect_all_conditions(self):
+
         for key, var in self.conditions.items():
             var.set(False)
 
@@ -264,11 +265,11 @@ class StockScreenerApp:
         for i, ticker in enumerate(self.tickers, start=1):
 
             var = tk.BooleanVar(value=True)
-
-            row = (i - 1) % 25
-            col = (i - 1) // 25
-
-            ttk.Checkbutton(self.ticker_inner_frame, text=f"{i}. {ticker}", variable=var).grid(row=row, column=col, sticky=tk.W)
+            
+            ttk.Checkbutton(self.ticker_inner_frame,
+                            text=f"{i}. {ticker}",
+                            variable=var).grid(row=i - 1, column=0, sticky=tk.W, pady=1)
+            
             self.ticker_vars[ticker] = var
 
 # endregion
