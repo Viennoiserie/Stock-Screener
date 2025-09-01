@@ -219,7 +219,7 @@ def _make_cond_neq(h: int, idx_mod4: int):
     def _fn(d, *_):
         b = _safe_bar_at_hour_today(d, h)
         if b is None:
-            return None, None
+            return False, False
         if idx_mod4 == 1:
             cond = b["Open"] != b["Low"]
         elif idx_mod4 == 2:
@@ -241,8 +241,8 @@ for i, cid in enumerate(range(77, 80)):
     )
 
 # 80–81
-CONDITION_FUNCTIONS[80] = lambda d, dy, *_: safe_compare_day1_vs_today(d, dy, 4, 19, "Low", operator.le)
-CONDITION_FUNCTIONS[81] = lambda d, *_: safe_compare_bars(d, 5, 4, "Low", operator.le)
+CONDITION_FUNCTIONS[80] = lambda d, dy, *_: safe_compare_day1_vs_today(d, dy, 4, 19, "Low", operator.le, cid=80)
+CONDITION_FUNCTIONS[81] = lambda d, *_: safe_compare_bars(d, 5, 4, "Low", operator.le, cid=81)
 
 # 82–83
 CONDITION_FUNCTIONS[82] = lambda d, *_: safe_compare_to_range(d, 4, "High", range(5, 9), operator.ge)
