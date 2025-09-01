@@ -198,9 +198,9 @@ class StockScreenerApp:
                     idx, label = cond_defs[i]
                     comparator = extract_comparator(label)
 
-                    if 19 <= idx <= 34 or 51 <= idx <= 66:
-                        opposite_comparator = "≤" if comparator == "≥" else "≥" if comparator == "≤" else comparator
-
+                    if 19 <= idx <= 34 or 51 <= idx <= 66 or idx in (80, 81):
+                        opposite_comparator = ("≤" if comparator == "≥" else "≥" if comparator == "≤" else comparator)
+                        
                     else:
                         opposite_comparator = inverse_comparator(comparator)
 
